@@ -1,5 +1,5 @@
 'use strict';
-const CONFIG = {"version":1,"build":"bb181fa73c905bc9597727de9","salt":"Dio4sEgl5r7Qxq+d2hLML51ivdiCEBk+KH1uOfh+s1A=","iterations":600000,"manifest":"payload/d2af473278f8e9926490f18d21ae914bb7a035f857894923f3218827c51ebbde.bin","scope":"/retailprescot/"};
+const CONFIG = {"version":1,"build":"bbdb87d9b772eeabddce1a49c","salt":"Dio4sEgl5r7Qxq+d2hLML51ivdiCEBk+KH1uOfh+s1A=","iterations":600000,"manifest":"payload/569f1759c0c4a9b2a54e614ad1517304ee9b35cdab406d09202e57ed8603a26c.bin","scope":"/retailprescot/"};
 const PUBLIC = new Set(['gate.js','gate.css','preview-config.json','sw.js','robots.txt','.nojekyll','gate-logo.svg','gate-manrope.woff2']);
 const BASE = new URL(CONFIG.scope, self.location.origin);
 const encoder = new TextEncoder();
