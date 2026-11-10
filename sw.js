@@ -1,9 +1,8 @@
 'use strict';
-const CONFIG = {"version":1,"build":"b401dd3c3697fd6dc497527b","salt":"Dio4sEgl5r7Qxq+d2hLML51ivdiCEBk+KH1uOfh+s1A=","iterations":600000,"manifest":"payload/8b1b211e42e4483be56acca8b672b93c580e318442839df718cff37769557336.bin","scope":"/retailprescot/"};
+const CONFIG = {"version":1,"build":"bb181fa73c905bc9597727de9","salt":"Dio4sEgl5r7Qxq+d2hLML51ivdiCEBk+KH1uOfh+s1A=","iterations":600000,"manifest":"payload/d2af473278f8e9926490f18d21ae914bb7a035f857894923f3218827c51ebbde.bin","scope":"/retailprescot/"};
 const PUBLIC = new Set(['gate.js','gate.css','preview-config.json','sw.js','robots.txt','.nojekyll','gate-logo.svg','gate-manrope.woff2']);
 const BASE = new URL(CONFIG.scope, self.location.origin);
 const encoder = new TextEncoder();
-const aad = encoder.encode(CONFIG.build);
 const authorized = new Set();
 let context = null, recovering = null, lockEpoch = 0, explicitlyLocked = false;
 const decodeKey = raw => Uint8Array.from(atob(raw), c => c.charCodeAt(0));
@@ -13,14 +12,14 @@ const noStore = {'Cache-Control':'no-store, private','X-Robots-Tag':'noindex, no
 self.addEventListener('install', event => event.waitUntil(self.skipWaiting()));
 self.addEventListener('activate', event => event.waitUntil(self.clients.claim()));
 
-async function decrypt(file, key, epoch = lockEpoch) {
+async function decrypt(file, key, epoch = lockEpoch, aadBuild = CONFIG.build, timeoutMs = 15000) {
   // Retry only transport failures. Authentication/decryption runs once, below.
-  const delays = [250,750], transient = new Set([408,429,500,502,503,504]);
+  const delays = [250,750], transient = new Set([408,500,502,503,504]);
   let sealed;
   for (let attempt = 0; attempt <= delays.length; attempt += 1) {
     if (epoch !== lockEpoch) throw new Error('locked');
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(),15000);
+    const timer = setTimeout(() => controller.abort(),timeoutMs);
     let retryable = true;
     try {
       const response = await fetch(new URL(file, BASE), {cache:'no-store',credentials:'omit',signal:controller.signal});
@@ -36,7 +35,7 @@ async function decrypt(file, key, epoch = lockEpoch) {
     if (!retryable || attempt === delays.length) throw new Error('network');
     await new Promise(resolve => setTimeout(resolve,delays[attempt]));
   }
-  const plain = await crypto.subtle.decrypt({name:'AES-GCM',iv:sealed.slice(0,12),additionalData:aad}, key, sealed.slice(12));
+  const plain = await crypto.subtle.decrypt({name:'AES-GCM',iv:sealed.slice(0,12),additionalData:encoder.encode(aadBuild)}, key, sealed.slice(12));
   if (epoch !== lockEpoch) throw new Error('locked');
   return plain;
 }
@@ -60,7 +59,7 @@ async function readFile(entry, active) {
     return existing;
   }
   if (active.pending.has(entry.file)) return active.pending.get(entry.file);
-  const task = decrypt(entry.file,active.key).then(plain => {
+  const task = decrypt(entry.file,active.key,lockEpoch,entry.aad || CONFIG.build,Math.min(300000,Math.max(30000,Math.ceil(entry.size / 131072) * 1000))).then(plain => {
     const limit = 48 * 1024 * 1024;
     if (plain.byteLength <= limit) {
       while (active.memoryBytes + plain.byteLength > limit && active.buffers.size) {
