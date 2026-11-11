@@ -189,6 +189,7 @@ self.addEventListener('fetch', event => {
   if (url.origin !== BASE.origin || !scopePath(url.pathname) || !['GET','HEAD'].includes(event.request.method)) return;
   let path;
   try { path = decodeURIComponent(url.pathname.slice(BASE.pathname.length)); } catch { return; }
+  if (path.startsWith('mailing-preview/')) return;
   if (PUBLIC.has(path) || path.startsWith('payload/')) return;
   event.respondWith(serve(event,path));
 });
